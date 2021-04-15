@@ -1,47 +1,59 @@
 import React, { useState } from "react";
-import List from "./List";
-import TodoForm from "./TodoForm";
-import Item from "./Item";
+import List from "./components/List";
+import TodoForm from "./components/TodoForm";
+import Modal from "./components/Modal";
 import "./Todo.css";
 
-function Todo() {
+import { createStore } from 'redux'
+import { Provider } from 'react-redux'
+import listReducer from './reducers/listReducer'
 
-  const [items, setItems] = useState([]);
+const SAVED_ITEMS = "savedItems"
 
-  function onAddItem(text) {
-    let item = new Item(text)
+function persistState(state) {
+  localStorage.setItem(SAVED_ITEMS, JSON.stringify(state))
+}
 
-    setItems([...items, item])
-  }
+function loadState() {
+  const currentState = localStorage.getItem(SAVED_ITEMS)
+  if(currentState)
+    return JSON.parse(currentState) 
+  else
+    return []
+}
 
-  function onItemDeleted(item) {
-    let filteredItems = items.filter( it => it.id !== item.id )
+const store = createStore(listReducer, loadState())
 
-    setItems(filteredItems)
-  }
+store.subscribe(() => {
+  persistState(store.getState())
+})
 
-  function onDone(item) {
-    let updatedItems = items.map(it => {
-      if(it.id === item.id) {
-        it.done = !it.done
-      }
-      return it
-    })
+function App() {
 
-    setItems(updatedItems)
+  const [showModal, setShowModal] = useState(false)
+
+  function onHideModal() {
+    setShowModal(false)
   }
 
   return (
     <div className="container">
-      <h1>Todo</h1>
-      
-      <TodoForm onAddItem={onAddItem}></TodoForm>
+      <Provider store={store}>
+        <header className="header">
+          <h1>Todo</h1>
+          <button className="addButton" onClick={() => { setShowModal(true) }}>+</button>
+        </header>
 
-      <List onDone={onDone} onItemDeleted={onItemDeleted} items={items}></List>
+        <List></List>
+
+        <Modal show={showModal} onHideModal={onHideModal}>
+          <TodoForm onHideModal={onHideModal}></TodoForm>
+        </Modal>
+      </Provider>
     </div>
   );
 }
 
 
 
-export default Todo;
+export default App;
